@@ -68,16 +68,51 @@ static inline void log_info(const char *fmt, ...) {
 }
 
 int compare_req(const Request *a, const Request *b) {
-    if (a->method != b->method) {
-        return a->method - b->method;
-    }
-    if (a->path_len != b->path_len) {
-        return a->path_len - b->path_len;
+    int cmp;
+
+    if ((cmp = a->method - b->method) != 0) {
+        return cmp;
     }
 
-    int cmp = strcmp(a->version, b->version);
-    if (cmp != 0) {
+    if ((cmp = a->path_len - b->path_len) != 0) {
         return cmp;
+    }
+
+    if ((cmp = strcmp(a->version, b->version)) != 0) {
+        return cmp;
+    }
+
+    if ((cmp = a->header_count - b->header_count) != 0) {
+        return cmp;
+    }
+
+    for (int i = 0; i < a->header_count; i++) {
+        Header ha = a->headers[i];
+        Header hb = b->headers[i];
+        cmp = ha.name_len - hb.name_len;
+        if (cmp != 0) {
+            return cmp;
+        }
+        cmp = ha.value_len - hb.value_len;
+        if (cmp != 0) {
+            return cmp;
+        }
+
+        cmp = ha.value_len - hb.value_len;
+        if (cmp != 0) {
+            return cmp;
+        }
+
+        cmp = strncmp(ha.name, hb.name, ha.name_len);
+        if (cmp != 0) {
+            return cmp;
+        }
+
+        cmp = strncmp(ha.value, hb.value, ha.value_len);
+        if (cmp != 0) {
+            return cmp;
+        }
+
     }
 
     return strncmp(a->path, b->path, a->path_len);
@@ -108,7 +143,7 @@ void eat_n(const char **cursor, int n) {
 }
 
 void eat_spaces(const char **cursor) {
-    while (**cursor == ' ') {
+    while (**cursor == ' ' || **cursor == '\t' || **cursor == '\n') {
         eat_n(cursor, 1);
     }
 }
@@ -130,6 +165,19 @@ void get_version(const char **cursor, Request *req) {
     req->version[i] = '\0';
 }
 
+void get_headers(const char **cursor, Request *req) {
+
+    // read a thing until we get a ':'
+    // eat the space
+    // then go until we hit a carige (if we see two then end the thing)
+
+    printf("getting headers\n");
+
+    unused(cursor);
+    unused(req);
+    todo();
+}
+
 Request parse_req(const char *input) {
     logi("Req: %s", input);
     Request req;
@@ -144,15 +192,14 @@ Request parse_req(const char *input) {
     }
     req.path = input;
     req.path_len = i;
-
     eat_n(&input, i);
     eat_spaces(&input);
-
     get_version(&input, &req);
 
-    // then eat the headers
-    // ends with two \r\n
-
+    // TODO: end the program early if
+    // we see doulble return (no flags)
+    eat_spaces(&input);
+    get_headers(&input, &req);
     return req;
 }
 

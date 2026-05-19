@@ -1,5 +1,6 @@
 #include <stdio.h>
 
+#define REQ_INTERN
 #include "cttp.h"
 
 #define REG_TEST(test) reg_test(test, #test)
@@ -57,7 +58,29 @@ int test_parse_req_2() {
         .path = "/",
         .version = "HTTP/1.1",
         .path_len = 1,
+        .headers = {
+            (Header){
+                .name = "Host",
+                .name_len = 4,
+                .value = "localhost:8080",
+                .value_len = 14,
+            },
+            (Header){
+                .name = "User-Agent",
+                .name_len = 10,
+                .value = "curl/8.20.0",
+                .value_len = 11,
+            },
+            (Header){
+                .name = "Accept",
+                .name_len = 6,
+                .value = "*/*",
+                .value_len = 3,
+            },
+        },
+        .header_count = 3,
     };
+
     if (compare_req(&req, &exp) != 0) {
         return 1;
     }
@@ -78,6 +101,27 @@ int test_parse_req_1() {
         .path = "/foo",
         .path_len = 4,
         .version = "HTTP/1.1",
+        .headers = {
+            (Header){
+                .name = "Host",
+                .name_len = 4,
+                .value = "localhost:8080",
+                .value_len = 14,
+            },
+            (Header){
+                .name = "User-Agent",
+                .name_len = 10,
+                .value = "curl/8.20.0",
+                .value_len = 11,
+            },
+            (Header){
+                .name = "Accept",
+                .name_len = 6,
+                .value = "*/*",
+                .value_len = 3,
+            },
+        },
+        .header_count = 3,
     };
     if (compare_req(&req, &exp) != 0) {
         return 1;
