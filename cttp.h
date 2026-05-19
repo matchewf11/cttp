@@ -3,6 +3,8 @@
 
 int run_server();
 
+#ifdef REQ_INTERN
+
 typedef enum {
     Get,
     Post,
@@ -19,4 +21,5 @@ Request parse_req(const char *input);
 
 int compare_req(const Request *a, const Request *b);
 
+#endif
 #endif

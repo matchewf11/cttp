@@ -6,7 +6,9 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 
+#define REQ_INTERN
 #include "cttp.h"
+
 
 #define LOG_ERROR 0
 #define LOG_WARN 1

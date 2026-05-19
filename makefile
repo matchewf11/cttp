@@ -3,11 +3,11 @@ SAN = -fsanitize=address,undefined
 BIN = cttp
 
 test: test.c
-       cc test.c -o test $(CFLAGS) $(SAN)
-       ./test
+	cc test.c cttp.c -o test $(CFLAGS) $(SAN)
+	./test
 
 all: main.c
-       cc main.c -o $(BIN) $(CFLAGS) $(SAN)
+	cc main.c cttp.c -o $(BIN) $(CFLAGS) $(SAN)
 
 run: all
-       ./$(BIN)
+	./$(BIN)
