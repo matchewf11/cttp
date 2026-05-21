@@ -6,202 +6,9 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 
-#define REQ_INTERN
-#include "cttp.h"
-
-
-#define LOG_ERROR 0
-#define LOG_WARN 1
-#define LOG_INFO 2
-
-#ifndef LOG_LEVEL
-#define LOG_LEVEL LOG_INFO
-#endif
-
-#define todo() exit(1)
-#define unreachable() exit(1)
-#define unused(v) (void)(v)
-
-#if LOG_LEVEL <= LOG_WARN
-#define logw(...) log_warn(__VA_ARGS__)
-#else
-#define logw(...)
-#endif
-
-#if LOG_LEVEL <= LOG_INFO
-#define logi(...) log_info(__VA_ARGS__)
-#else
-#define logi(...)
-#endif
-
-#if LOG_LEVEL <= LOG_ERROR
-#define loge(...) log_error(__VA_ARGS__)
-#else
-#define loge(...)
-#endif
-
-static inline void log_error(const char *fmt, ...) {
-    va_list ap;
-    va_start(ap, fmt);
-    printf("[ERROR] ");
-    vprintf(fmt, ap);
-    printf("\n");
-    va_end(ap);
-}
-
-static inline void log_warn(const char *fmt, ...) {
-    va_list ap;
-    va_start(ap, fmt);
-    printf("[WARN] ");
-    vprintf(fmt, ap);
-    printf("\n");
-    va_end(ap);
-}
-
-static inline void log_info(const char *fmt, ...) {
-    va_list ap;
-    va_start(ap, fmt);
-    printf("[INFO] ");
-    vprintf(fmt, ap);
-    printf("\n");
-    va_end(ap);
-}
-
-int compare_req(const Request *a, const Request *b) {
-    int cmp;
-
-    if ((cmp = a->method - b->method) != 0) {
-        return cmp;
-    }
-
-    if ((cmp = a->path_len - b->path_len) != 0) {
-        return cmp;
-    }
-
-    if ((cmp = strcmp(a->version, b->version)) != 0) {
-        return cmp;
-    }
-
-    if ((cmp = a->header_count - b->header_count) != 0) {
-        return cmp;
-    }
-
-    for (int i = 0; i < a->header_count; i++) {
-        Header ha = a->headers[i];
-        Header hb = b->headers[i];
-        cmp = ha.name_len - hb.name_len;
-        if (cmp != 0) {
-            return cmp;
-        }
-        cmp = ha.value_len - hb.value_len;
-        if (cmp != 0) {
-            return cmp;
-        }
-
-        cmp = ha.value_len - hb.value_len;
-        if (cmp != 0) {
-            return cmp;
-        }
-
-        cmp = strncmp(ha.name, hb.name, ha.name_len);
-        if (cmp != 0) {
-            return cmp;
-        }
-
-        cmp = strncmp(ha.value, hb.value, ha.value_len);
-        if (cmp != 0) {
-            return cmp;
-        }
-
-    }
-
-    return strncmp(a->path, b->path, a->path_len);
-}
-
-const char* display_method(Method method) {
-    switch (method) {
-        case Get:
-            return "Get";
-        case Post:
-            return "Post";
-    }
-    unreachable();
-}
-
-void display_req(const Request *req) {
-    printf("Method: %s\nPath: ", display_method(req->method));
-
-    for (int i = 0; i < req->path_len; i++) {
-        printf("%c", req->path[i]);
-    }
-
-    printf("\nVersion: %s\n", req->version);
-}
-
-void eat_n(const char **cursor, int n) {
-    *cursor += n;
-}
-
-void eat_spaces(const char **cursor) {
-    while (**cursor == ' ' || **cursor == '\t' || **cursor == '\n') {
-        eat_n(cursor, 1);
-    }
-}
-
-Method parse_method(const char **cursor) {
-    if (strncmp(*cursor, "GET", 3) == 0) {
-        eat_n(cursor, 3);
-        return Get;
-    }
-    unreachable();
-}
-
-void get_version(const char **cursor, Request *req) {
-    int i = 0;
-    while (**cursor != ' ' && **cursor != '\r') {
-        req->version[i++] = **cursor;
-        eat_n(cursor, 1);
-    }
-    req->version[i] = '\0';
-}
-
-void get_headers(const char **cursor, Request *req) {
-
-    // read a thing until we get a ':'
-    // eat the space
-    // then go until we hit a carige (if we see two then end the thing)
-
-    printf("getting headers\n");
-
-    unused(cursor);
-    unused(req);
-    todo();
-}
-
-Request parse_req(const char *input) {
-    logi("Req: %s", input);
-    Request req;
-
-    req.method = parse_method(&input);
-
-    eat_spaces(&input);
-
-    int i = 0;
-    while (input[i] != ' ') {
-        i++;
-    }
-    req.path = input;
-    req.path_len = i;
-    eat_n(&input, i);
-    eat_spaces(&input);
-    get_version(&input, &req);
-
-    // TODO: end the program early if
-    // we see doulble return (no flags)
-    eat_spaces(&input);
-    get_headers(&input, &req);
-    return req;
-}
+#include "req.h"
+#include "log.h"
+#include "comp.h"
 
 int run_server() {
     logi("trying to open socket");
@@ -238,27 +45,18 @@ int run_server() {
 
         logi("read req");
         char buffer[1024];
-        int rec_res = recv(client, buffer, sizeof(buffer), 0);
+        recv(client, buffer, sizeof(buffer), 0);
         logi("done reading req");
 
-        switch (rec_res) {
-            case 0:
-            case -1:
-                printf("Rec error or done\n");
-                break;
-            default:
-                buffer[rec_res] = '\0';
-                parse_req(buffer);
-        }
+        Request req = parse_req(buffer);
+        unused(req);
 
         char *msg =
             "HTTP/1.1 200 OK\r\n"
+            "Content-Type: text/html\r\n"
             "\r\n"
-            "OK";
-
-        logi("attemping to send msg");
+            "<h1>hello from c</h1>";
         send(client, msg, strlen(msg), 0);
-        logi("sent msg");
 
         close(client);
         logi("closed");

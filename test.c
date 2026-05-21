@@ -1,48 +1,5 @@
-#include <stdio.h>
-
-#define REQ_INTERN
-#include "cttp.h"
-
-#define REG_TEST(test) reg_test(test, #test)
-
-typedef int test_fn(void);
-
-typedef struct {
-    test_fn *test;
-    const char *name;
-} Test;
-
-static Test tests[128];
-
-static int test_i = 0;
-static int passed = 0;
-static int failed = 0;
-
-void reg_test(test_fn test, const char *name) {
-    tests[test_i++] = (Test){
-        .test = test,
-        .name = name,
-    };
-}
-
-void run_tests() {
-    printf("Starting Tests...\n");
-
-    for (int i = 0; i < test_i; i++) {
-        Test curr = tests[i];
-        if (curr.test() == 0) {
-            passed++;
-            printf("Test '%s' passed\n", curr.name);
-        } else {
-            failed++;
-            printf("Test '%s' failed\n", curr.name);
-        }
-
-    }
-
-    printf("Passed: %d\n", passed);
-    printf("Failed: %d\n", failed);
-}
+#include "test.h"
+#include "req.h"
 
 int test_parse_req_2() {
     const char *input =
@@ -123,6 +80,7 @@ int test_parse_req_1() {
         },
         .header_count = 3,
     };
+
     if (compare_req(&req, &exp) != 0) {
         return 1;
     }
